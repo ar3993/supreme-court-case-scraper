@@ -1,0 +1,55 @@
+# ----------------------
+# Python
+# ----------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# ----------------------
+# Virtual environments
+# ----------------------
+venv/
+.env/
+.envrc/
+
+# ----------------------
+# IDE / Editor
+# ----------------------
+.vscode/
+.idea/
+
+# ----------------------
+# OS files
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# Logs & temp files
+# ----------------------
+*.log
+*.tmp
+
+# ----------------------
+# Selenium / Browser
+# ----------------------
+chromedriver*
+geckodriver*
+
+# ----------------------
+# Data & outputs
+# ----------------------
+*.csv
+*.xlsx
+
+# Allow sample CSVs explicitly
+!sample_output/*.csv
+
+# ----------------------
+# Secrets (if ever used)
+# ----------------------
+*.key
+*.pem
+*.json

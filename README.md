@@ -1,183 +1,207 @@
-Supreme Court of India – Diary Case Scraper
-Overview
+# Supreme Court of India – Diary Case Scraper
 
-This project is an end-to-end Selenium-based web scraper for extracting structured case metadata from the ecourts website of Supreme Court of India – Diary Number Case Status portal.
+## Overview
+
+This project is an **end-to-end Selenium-based web scraper** for extracting structured case metadata from the **Supreme Court of India – Diary Number Case Status portal**.
 
 The scraper is designed to handle:
+- Dynamic, accordion-based sections
+- CAPTCHA-gated access (manual solve, automated extraction)
+- Deeply nested HTML tables
+- Legal domain–specific data normalization
 
-Dynamic, accordion-based sections
+The output is a **clean, analysis-ready CSV** suitable for legal analytics, research workflows, and downstream NLP / LLM pipelines.
 
-CAPTCHA-gated access (manual solve, automated extraction)
+---
 
-Deeply nested HTML tables
+## Key Features
 
-Legal domain–specific data normalization
+- Automated extraction of **Case Details**, **Listing Dates**, **Judgements / Orders**, and **Interlocutory Applications**
+- Robust handling of:
+  - Dynamically expanded sections
+  - Nested tables inside accordions
+  - Non-standard HTML structures
+- Intelligent parsing and normalization:
+  - Diary Number
+  - Case Number & Case Type
+  - Filing / Registration / Decision Dates
+  - Bench & First Judge
+  - Case Status & Nature of Disposal
+- Advanced legal analytics:
+  - Number of hearings
+  - Number of orders
+  - Interim Applications split by:
+    - Petitioner
+    - Respondent
+    - Interlocutors
 
-The output is a clean, analysis-ready CSV suitable for legal analytics, research workflows, and downstream NLP / LLM pipelines.
+---
 
-Key Features
-
-Automated extraction of Case Details, Listing Dates, Judgements / Orders, and Interlocutory Applications
-
-Robust handling of:
-
-Dynamically expanded sections
-
-Nested tables inside accordions
-
-Non-standard HTML structures
-
-Intelligent parsing and normalization:
-
-Diary Number
-
-Case Number & Type
-
-Filing / Registration / Decision Dates
-
-Bench & First Judge
-
-Case Status & Nature of Disposal
-
-Advanced legal analytics:
-
-Number of hearings
-
-Number of orders
-
-Interim Applications split by:
-
-Petitioner
-
-Respondent
-
-Interlocutors
-
-Production-ready CSV output for analytics or ML pipelines
-
-Data Extracted
+## Data Extracted
 
 The scraper outputs the following fields (non-exhaustive):
 
-Diary Number
+- Diary Number  
+- Case Number  
+- Case Type  
+- Filing Date  
+- Registration Date  
+- Decision Date  
+- Case Status  
+- Nature of Disposal  
+- CNR Number  
+- Bench  
+- First Judge Name  
+- Petitioner / Respondent  
+- Petitioner & Respondent Advocates  
+- Impleader / Intervenor Advocates  
+- First Hearing Date  
+- Last Listed Date  
+- Number of Hearings  
+- Number of Orders  
+- Number of Interim Applications:
+  - By Petitioner
+  - By Respondent
+  - By Interlocutors
+  - Total
 
-Case Number
+---
 
-Case Type
+## Project Structure
 
-Filing Date
+# Supreme Court of India – Diary Case Scraper
 
-Registration Date
+## Overview
 
-Decision Date
+This project is an **end-to-end Selenium-based web scraper** for extracting structured case metadata from the **Supreme Court of India – Diary Number Case Status portal**.
 
-Case Status
+The scraper is designed to handle:
+- Dynamic, accordion-based sections
+- CAPTCHA-gated access (manual solve, automated extraction)
+- Deeply nested HTML tables
+- Legal domain–specific data normalization
 
-Nature of Disposal
+The output is a **clean, analysis-ready CSV** suitable for legal analytics, research workflows, and downstream NLP / LLM pipelines.
 
-CNR Number
+---
 
-Bench
+## Key Features
 
-First Judge Name
+- Automated extraction of **Case Details**, **Listing Dates**, **Judgements / Orders**, and **Interlocutory Applications**
+- Robust handling of:
+  - Dynamically expanded sections
+  - Nested tables inside accordions
+  - Non-standard HTML structures
+- Intelligent parsing and normalization:
+  - Diary Number
+  - Case Number & Case Type
+  - Filing / Registration / Decision Dates
+  - Bench & First Judge
+  - Case Status & Nature of Disposal
+- Advanced legal analytics:
+  - Number of hearings
+  - Number of orders
+  - Interim Applications split by:
+    - Petitioner
+    - Respondent
+    - Interlocutors
 
-Petitioner / Respondent
+---
 
-Petitioner & Respondent Advocates
+## Data Extracted
 
-Impleader / Intervenor Advocates
+The scraper outputs the following fields (non-exhaustive):
 
-First Hearing Date
+- Diary Number  
+- Case Number  
+- Case Type  
+- Filing Date  
+- Registration Date  
+- Decision Date  
+- Case Status  
+- Nature of Disposal  
+- CNR Number  
+- Bench  
+- First Judge Name  
+- Petitioner / Respondent  
+- Petitioner & Respondent Advocates  
+- Impleader / Intervenor Advocates  
+- First Hearing Date  
+- Last Listed Date  
+- Number of Hearings  
+- Number of Orders  
+- Number of Interim Applications:
+  - By Petitioner
+  - By Respondent
+  - By Interlocutors
+  - Total
 
-Last Listed Date
+---
 
-Number of Hearings
+## Project Structure
 
-Number of Orders
+supreme-court-case-scraper/
+│
+├── scraper.py
+│ ├── Browser automation (Selenium)
+│ ├── Dynamic section expansion
+│ ├── DOM-based extraction logic
+│ ├── Data normalization & parsing
+│ └── CSV output generation
+│
+├── Engagement_summary_judgement - Sheet2.csv
+│ └── Output dataset (appended per case)
+│
+├── requirements.txt
+│ └── Python dependencies
+│
+├── README.md
+│ └── Project documentation
+│
+└── .gitignore
+└── Environment / cache exclusions
 
-Number of Interim Applications:
 
-By Petitioner
+---
 
-By Respondent
+## Tech Stack
 
-By Interlocutors
+- **Python 3.10+**
+- **Selenium**
+- **Chrome WebDriver**
+- **Pandas**
+- **Regular Expressions**
+- **JavaScript DOM inspection (for selector validation)**
 
-Total
+---
 
-Tech Stack
+## How It Works (High-Level)
 
-Python 3.10+
+1. User navigates to the SCI diary case page
+2. CAPTCHA is solved manually (as required by the website)
+3. Script:
+   - Detects successful page load via DOM markers
+   - Expands required accordion sections
+   - Extracts structured data from nested tables
+   - Normalizes and derives analytical fields
+4. Data is appended to a CSV file for further analysis
 
-Selenium
+---
 
-Chrome WebDriver
+## Usage
 
-Pandas
-
-Regular Expressions
-
-JavaScript DOM inspection (for selector validation)
-
-How It Works (High-Level)
-
-User navigates to the SCI diary case page
-
-CAPTCHA is solved manually (as required by the website)
-
-Script:
-
-Detects successful page load via DOM markers
-
-Expands required accordion sections
-
-Extracts structured data from nested tables
-
-Normalizes and derives analytical fields
-
-Data is appended to a CSV file for further analysis
-
-Usage
+```bash
 pip install -r requirements.txt
 python scraper.py
 
-
 After launching:
 
-Enter diary number and year in the browser
+1) Enter diary number and year in the browser
 
-Solve CAPTCHA
+2) Solve CAPTCHA
 
-Press ENTER in the terminal
+3) Press ENTER in the terminal
 
-Data is extracted and appended to CSV
+4) Data is extracted and appended to CSV
 
-Design Decisions
 
-Manual CAPTCHA handling to respect site constraints
-
-DOM-truth based extraction instead of brittle visual assumptions
-
-Explicit waits and guarded selectors for stability
-
-Legal-domain aware parsing (e.g., bench extraction, IA attribution)
-
-Limitations
-
-CAPTCHA cannot be automated
-
-Website structure changes may require selector updates
-
-Intended for research / analytical use, not high-frequency scraping
-
-Future Enhancements
-
-Batch diary number ingestion
-
-Headless execution with manual CAPTCHA handoff
-
-Database-backed storage
-
-Integration with legal NLP pipelines (summarization, RAG, embeddings)
-
-Logging and retry mechanisms

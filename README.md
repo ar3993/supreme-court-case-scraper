@@ -138,32 +138,6 @@ The scraper outputs the following fields (non-exhaustive):
 
 ---
 
-## Project Structure
-
-supreme-court-case-scraper/
-│
-├── scraper.py
-│ ├── Browser automation (Selenium)
-│ ├── Dynamic section expansion
-│ ├── DOM-based extraction logic
-│ ├── Data normalization & parsing
-│ └── CSV output generation
-│
-├── Engagement_summary_judgement - Sheet2.csv
-│ └── Output dataset (appended per case)
-│
-├── requirements.txt
-│ └── Python dependencies
-│
-├── README.md
-│ └── Project documentation
-│
-└── .gitignore
-└── Environment / cache exclusions
-
-
----
-
 ## Tech Stack
 
 - **Python 3.10+**
@@ -203,5 +177,6 @@ After launching:
 3) Press ENTER in the terminal
 
 4) Data is extracted and appended to CSV
+
 
 

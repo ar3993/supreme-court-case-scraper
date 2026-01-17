@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -47,11 +48,30 @@ def expand_section_by_tab(driver, tab_name):
     driver.execute_script("arguments[0].click();", button)
 
 def expand_orders_section(driver):
-    button = driver.find_element(
-        By.XPATH, "//button[normalize-space()='Judgement/Orders']"
+    button = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//button[normalize-space()='Judgement/Orders']")
+        )
     )
-    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
-    driver.execute_script("arguments[0].click();", button)
+
+    driver.execute_script(
+        "arguments[0].scrollIntoView({block:'center'});", button
+    )
+
+    try:
+        # Attempt real user click first
+        WebDriverWait(driver, 5).until(EC.element_to_be_clickable(button))
+        button.click()
+    except:
+        # Fallback: JS click if intercepted
+        driver.execute_script("arguments[0].click();", button)
+
+    # CRITICAL: wait for table rows, not links
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//table//tr")
+        )
+    )
     
 def normalize_name(text):
     if not text:
@@ -141,6 +161,106 @@ def expand_ia_section(driver):
         driver.execute_script("arguments[0].click();", button)
     except:
         pass  # section may already be open
+    
+    from datetime import datetime
+
+def extract_first_order_date(driver):
+    # """
+    # Extracts the earliest date from the Judgement/Orders section.
+    # Assumes dates are present in dd-mm-yyyy format.
+    # """
+    # expand_orders_section(driver)
+
+    # # Wait for any order row to load
+    # WebDriverWait(driver, 20).until(
+    #     EC.presence_of_element_located(
+    #         (By.XPATH, "//a[contains(@href,'.pdf')]")
+    #     )
+    # )
+
+    # # Common pattern: date appears in the same row as the PDF link
+    # date_cells = driver.find_elements(
+    #     By.XPATH,
+    #     "//a[contains(@href,'.pdf')]/ancestor::tr//td"
+    # )
+
+    # dates = []
+    # for cell in date_cells:
+    #     text = cell.text.strip()
+    #     try:
+    #         # strict parse to avoid junk text
+    #         dt = datetime.strptime(text, "%d-%m-%Y")
+    #         dates.append(dt)
+    #     except:
+    #         continue
+
+    # if not dates:
+    #     return ""
+
+    # return min(dates).strftime("%d-%m-%Y")
+
+    expand_orders_section(driver)
+
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//a[contains(@href,'.pdf')]")
+        )
+    )
+
+    rows = driver.find_elements(
+        By.XPATH, "//a[contains(@href,'.pdf')]/ancestor::tr"
+    )
+
+    print("DEBUG ORDER ROW COUNT:", len(rows))
+
+    for i, row in enumerate(rows):
+        print(f"\n--- ORDER ROW {i+1} TEXT ---")
+        print(row.text)
+
+    return ""
+
+from datetime import datetime
+
+def extract_first_hearing_from_orders(driver):
+    expand_orders_section(driver)
+
+    # Wait for the table to be stable
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//a[contains(@href,'.pdf')]")
+        )
+    )
+    
+    # Small delay to ensure DOM is stable after expansion
+    time.sleep(1)
+
+    # Find all rows
+    rows = driver.find_elements(By.XPATH, "//table//tr")
+
+    dates = []
+
+    # Extract text immediately before storing, to avoid stale references
+    for row in rows:
+        try:
+            row_text = row.text  # Get text immediately
+            matches = re.findall(r"\b\d{2}-\d{2}-\d{4}\b", row_text)
+            for d in matches:
+                try:
+                    dates.append(datetime.strptime(d, "%d-%m-%Y"))
+                except:
+                    pass
+        except:
+            # Skip stale elements
+            continue
+
+    print("DEBUG ORDER ROW COUNT:", len(rows))
+    print("DEBUG ORDER DATES FOUND:", [d.strftime("%d-%m-%Y") for d in dates])
+
+    if not dates:
+        return ""
+
+    return min(dates).strftime("%d-%m-%Y")
+
 
 
 # -------------------------------------------------
@@ -205,7 +325,6 @@ def scrape_current_case(driver):
     )
 
     listing_dates = [c.text.strip() for c in driver.find_elements(By.XPATH, "//td[@data-th='CL Date']/span")]
-    first_hearing = min(listing_dates)
     last_listed = max(listing_dates)
     num_hearings = len(set(listing_dates))
 
@@ -274,6 +393,8 @@ def scrape_current_case(driver):
     )
     num_orders = len(driver.find_elements(By.XPATH, "//a[contains(@href,'.pdf')]"))
 
+    first_hearing = extract_first_order_date(driver)
+
     # -------- Derived fields --------
     raw_diary = get_first_matching(case_data, ["Diary Number", "Diary No."])
     raw_case_no = get_first_matching(case_data, ["Case Number", "Case No."])
@@ -305,7 +426,7 @@ def scrape_current_case(driver):
         "Respondent Legal Representative": ", ".join(resp_advs),
         "Impleader Advocate(s)": impleader_adv,
         "Intervenor Advocate(s)": intervenor_adv,
-        "First Hearing Date": first_hearing,
+        "First Hearing Date": extract_first_hearing_from_orders(driver),
         "Last Listed On": last_listed,
         "Number of Hearings": num_hearings,
         "Number of Orders": num_orders,

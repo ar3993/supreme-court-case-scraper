@@ -179,8 +179,6 @@ def expand_ia_section(driver):
         driver.execute_script("arguments[0].click();", button)
     except:
         pass  # section may already be open
-    
-    
 
 def extract_last_listed_from_case_details(case_data):
     """
@@ -193,43 +191,6 @@ def extract_last_listed_from_case_details(case_data):
 
     m = re.match(r"(\d{2}-\d{2}-\d{4})", text.strip())
     return m.group(1) if m else ""
-
-# def extract_hearing_and_order_counts(driver):
-#     expand_orders_section(driver)
-
-#     hearing_dates = set()
-#     order_dates = set()
-
-#     # Look for a table that follows the 'Judgement/Orders' text
-#     # This XPath looks for the row containing the button, then the next row containing a table
-#     table_xpath = "//tr[contains(., 'Judgement/Orders')]/following-sibling::tr//table"
-    
-#     try:
-#         # Reduced timeout to 5 seconds - if it's not there, it's likely empty
-#         table = WebDriverWait(driver, 5).until(
-#             EC.presence_of_element_located((By.XPATH, table_xpath))
-#         )
-        
-#         rows = table.find_elements(By.XPATH, ".//tr")
-#         for row in rows:
-#             full_text = row.text.strip()
-#             if not full_text: continue
-            
-#             dates = re.findall(r"\b\d{2}-\d{2}-\d{4}\b", full_text)
-#             if dates:
-#                 date = dates[0]
-#                 hearing_dates.add(date)
-                
-#                 # Check for "Judgement" or "Order" in this specific row
-#                 if re.search(r"\bJudg(e)?ment\b|\bOrder\b", full_text, re.IGNORECASE):
-#                     order_dates.add(date)
-                    
-#     except Exception:
-#         # If no table is found, we don't crash; we just return 0, 0
-#         print("DEBUG: No Judgement/Order table found. Assuming count is 0.")
-
-#     print(f"DEBUG: Found {len(hearing_dates)} hearings and {len(order_dates)} orders.")
-#     return len(hearing_dates), len(order_dates)
 
 def extract_hearing_and_order_counts(driver):
     expand_orders_section(driver)

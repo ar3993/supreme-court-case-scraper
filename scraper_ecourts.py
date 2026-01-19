@@ -5,6 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
 
 CSV_PATH = "supreme_court_case_sample.csv"
 CASE_STATUS_URL = "https://www.sci.gov.in/case-status-diary-no/"
@@ -48,30 +49,30 @@ def expand_section_by_tab(driver, tab_name):
     driver.execute_script("arguments[0].click();", button)
 
 def expand_orders_section(driver):
-    button = WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//button[normalize-space()='Judgement/Orders']")
-        )
-    )
-
-    driver.execute_script(
-        "arguments[0].scrollIntoView({block:'center'});", button
-    )
-
     try:
-        # Attempt real user click first
-        WebDriverWait(driver, 5).until(EC.element_to_be_clickable(button))
-        button.click()
-    except:
-        # Fallback: JS click if intercepted
-        driver.execute_script("arguments[0].click();", button)
-
-    # CRITICAL: wait for table rows, not links
-    WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//table//tr")
+        # 1. Find the button by text (most reliable)
+        button_xpath = "//button[normalize-space()='Judgement/Orders']"
+        button = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, button_xpath))
         )
-    )
+
+        # 2. Check if already expanded
+        is_expanded = button.get_attribute("aria-expanded")
+        if is_expanded == "true":
+            return
+
+        # 3. Scroll and Click
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", button)
+        time.sleep(1) # Small pause for scroll to finish
+        try:
+            button.click()
+        except:
+            driver.execute_script("arguments[0].click();", button)
+            
+        # 4. Wait a moment for animation
+        time.sleep(2) 
+    except Exception as e:
+        print(f"Warning: Could not expand Judgement section: {e}")
     
 def normalize_name(text):
     if not text:
@@ -125,10 +126,27 @@ def extract_filing_date(text):
     m = re.search(r"Filed on (\d{2}-\d{2}-\d{4})", text)
     return m.group(1) if m else ""
 
-def extract_bench(text):
-    if "[" in text and "]" in text:
-        return text.split("[", 1)[1].rsplit("]", 1)[0].strip()
-    return ""
+def extract_bench_from_case_details(case_data):
+    """
+    Extracts bench from:
+    'Present/Last Listed On' -> '17-10-2024 [HON'BLE ...]'
+    """
+    text = case_data.get("Present/Last Listed On", "")
+    if not text:
+        return ""
+
+    # Extract text inside square brackets
+    m = re.search(r"\[(.*?)\]", text)
+    if not m:
+        return ""
+
+    bench = m.group(1)
+
+    # Normalize spacing issues like 'PARDIWALAand'
+    bench = re.sub(r"\band\b", " and ", bench, flags=re.IGNORECASE)
+    bench = re.sub(r"\s+", " ", bench)
+
+    return bench.strip()
 
 def extract_first_judge(bench):
     if not bench:
@@ -162,64 +180,105 @@ def expand_ia_section(driver):
     except:
         pass  # section may already be open
     
-    from datetime import datetime
+    
 
-def extract_first_order_date(driver):
-    # """
-    # Extracts the earliest date from the Judgement/Orders section.
-    # Assumes dates are present in dd-mm-yyyy format.
-    # """
-    # expand_orders_section(driver)
+def extract_last_listed_from_case_details(case_data):
+    """
+    Extracts date from:
+    'Present/Last Listed On' -> '17-10-2024 [HON'BLE ...]'
+    """
+    text = case_data.get("Present/Last Listed On", "")
+    if not text:
+        return ""
 
-    # # Wait for any order row to load
-    # WebDriverWait(driver, 20).until(
-    #     EC.presence_of_element_located(
-    #         (By.XPATH, "//a[contains(@href,'.pdf')]")
-    #     )
-    # )
+    m = re.match(r"(\d{2}-\d{2}-\d{4})", text.strip())
+    return m.group(1) if m else ""
 
-    # # Common pattern: date appears in the same row as the PDF link
-    # date_cells = driver.find_elements(
-    #     By.XPATH,
-    #     "//a[contains(@href,'.pdf')]/ancestor::tr//td"
-    # )
+# def extract_hearing_and_order_counts(driver):
+#     expand_orders_section(driver)
 
-    # dates = []
-    # for cell in date_cells:
-    #     text = cell.text.strip()
-    #     try:
-    #         # strict parse to avoid junk text
-    #         dt = datetime.strptime(text, "%d-%m-%Y")
-    #         dates.append(dt)
-    #     except:
-    #         continue
+#     hearing_dates = set()
+#     order_dates = set()
 
-    # if not dates:
-    #     return ""
+#     # Look for a table that follows the 'Judgement/Orders' text
+#     # This XPath looks for the row containing the button, then the next row containing a table
+#     table_xpath = "//tr[contains(., 'Judgement/Orders')]/following-sibling::tr//table"
+    
+#     try:
+#         # Reduced timeout to 5 seconds - if it's not there, it's likely empty
+#         table = WebDriverWait(driver, 5).until(
+#             EC.presence_of_element_located((By.XPATH, table_xpath))
+#         )
+        
+#         rows = table.find_elements(By.XPATH, ".//tr")
+#         for row in rows:
+#             full_text = row.text.strip()
+#             if not full_text: continue
+            
+#             dates = re.findall(r"\b\d{2}-\d{2}-\d{4}\b", full_text)
+#             if dates:
+#                 date = dates[0]
+#                 hearing_dates.add(date)
+                
+#                 # Check for "Judgement" or "Order" in this specific row
+#                 if re.search(r"\bJudg(e)?ment\b|\bOrder\b", full_text, re.IGNORECASE):
+#                     order_dates.add(date)
+                    
+#     except Exception:
+#         # If no table is found, we don't crash; we just return 0, 0
+#         print("DEBUG: No Judgement/Order table found. Assuming count is 0.")
 
-    # return min(dates).strftime("%d-%m-%Y")
+#     print(f"DEBUG: Found {len(hearing_dates)} hearings and {len(order_dates)} orders.")
+#     return len(hearing_dates), len(order_dates)
 
+def extract_hearing_and_order_counts(driver):
     expand_orders_section(driver)
 
     WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//a[contains(@href,'.pdf')]")
-        )
+        EC.presence_of_element_located((By.XPATH, "//table//tr"))
     )
 
-    rows = driver.find_elements(
-        By.XPATH, "//a[contains(@href,'.pdf')]/ancestor::tr"
-    )
+    time.sleep(1)
 
-    print("DEBUG ORDER ROW COUNT:", len(rows))
+    rows = driver.find_elements(By.XPATH, "//table//tr")
 
-    for i, row in enumerate(rows):
-        print(f"\n--- ORDER ROW {i+1} TEXT ---")
-        print(row.text)
+    hearing_dates = set()
+    order_dates = set()
 
-    return ""
+    for row in rows:
+        try:
+            # Aggregate visible text from children
+            parts = []
+            for el in row.find_elements(By.XPATH, ".//td|.//th|.//span|.//a"):
+                t = el.text.strip()
+                if t:
+                    parts.append(t)
 
-from datetime import datetime
+            full_text = " ".join(parts)
+
+            # Extract date
+            m = re.search(r"\b\d{2}-\d{2}-\d{4}\b", full_text)
+            if not m:
+                continue
+
+            date = m.group(0)
+
+            # Hearing logic — ONLY ROP
+            if "ROP" in full_text.upper():
+                hearing_dates.add(date)
+
+            # Order logic — ONLY Judgement / Judgment
+            if re.search(r"\bJudg(e)?ment\b", full_text, re.IGNORECASE):
+                order_dates.add(date)
+
+        except:
+            continue
+
+    print("DEBUG UNIQUE ROP HEARING DATES:", len(hearing_dates))
+    print("DEBUG UNIQUE JUDGEMENT DATES:", len(order_dates))
+
+    return len(hearing_dates), len(order_dates)
+
 
 def extract_first_hearing_from_orders(driver):
     expand_orders_section(driver)
@@ -260,8 +319,6 @@ def extract_first_hearing_from_orders(driver):
         return ""
 
     return min(dates).strftime("%d-%m-%Y")
-
-
 
 # -------------------------------------------------
 # Case details extraction
@@ -324,35 +381,23 @@ def scrape_current_case(driver):
         EC.presence_of_element_located((By.XPATH, "//td[@data-th='CL Date']/span"))
     )
 
-    listing_dates = [c.text.strip() for c in driver.find_elements(By.XPATH, "//td[@data-th='CL Date']/span")]
-    last_listed = max(listing_dates)
-    num_hearings = len(set(listing_dates))
+    last_listed = extract_last_listed_from_case_details(case_data)
 
     listing_rows = driver.find_elements(By.XPATH, "//td[@data-th='CL Date']/ancestor::tr")
-    bench = ""
+    bench = extract_bench_from_case_details(case_data)
+    num_hearings, num_orders = extract_hearing_and_order_counts(driver)
 
-    for row in listing_rows:
-        try:
-            date_cell = row.find_element(
-                By.XPATH, ".//td[@data-th='CL Date']/span"
-            )
-            if date_cell.text.strip() == last_listed:
-                judges_cell = row.find_element(
-                    By.XPATH, ".//td[@data-th='Judges']/span"
-                )
-                bench = judges_cell.text.strip()
-                break
-        except:
-            continue
-    
-    
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//table[contains(@class,'caseDetailsTable')]")
+        )
+    )
     
     first_judge = extract_first_judge(bench)
     print("DEBUG FIRST JUDGE:", first_judge)
-
-    # -------- Interim Applications Counts --------
     
     # -------- Interim Applications Counts --------
+    
     ia_filed_by = extract_ia_filed_by(driver)
     
     # Split names in case there are multiple advocates listed in the main table
@@ -391,9 +436,6 @@ def scrape_current_case(driver):
     WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.XPATH, "//a[contains(@href,'.pdf')]"))
     )
-    num_orders = len(driver.find_elements(By.XPATH, "//a[contains(@href,'.pdf')]"))
-
-    first_hearing = extract_first_order_date(driver)
 
     # -------- Derived fields --------
     raw_diary = get_first_matching(case_data, ["Diary Number", "Diary No."])
@@ -406,6 +448,8 @@ def scrape_current_case(driver):
 
     impleader_adv = get_first_matching(case_data, ["Impleaders Advocate(s)"]) or "0"
     intervenor_adv = get_first_matching(case_data, ["Intervenor Advocate(s)"]) or "0"
+    
+    num_hearings, num_orders = extract_hearing_and_order_counts(driver)
 
     return {
         "Diary Number": extract_diary_number(raw_diary),
